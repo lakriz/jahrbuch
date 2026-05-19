@@ -174,6 +174,8 @@ export default function LayoutEditorPage() {
 
 function templateColor(type: string) {
   switch (type) {
+    case 'cover':        return 'bg-rose-400'
+    case 'back_cover':   return 'bg-rose-300'
     case 'class_page':   return 'bg-blue-400'
     case 'student_page': return 'bg-green-400'
     case 'event_page':   return 'bg-yellow-400'

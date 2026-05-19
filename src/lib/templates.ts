@@ -11,6 +11,25 @@ export interface PageTemplate {
 
 export const PAGE_TEMPLATES: PageTemplate[] = [
   {
+    type: 'cover',
+    label: 'Titelseite',
+    description: 'Deckblatt mit großem Titelbild, Schulname und Jahreszahl',
+    defaultBlocks: [
+      { type: 'photo_single', src: '', caption: '' },
+      { type: 'heading', content: 'Jahrbuch', level: 1 },
+      { type: 'text', content: '' },
+    ],
+  },
+  {
+    type: 'back_cover',
+    label: 'Rückseite',
+    description: 'Abschlussseite mit Abschlussbild und Schlusstext',
+    defaultBlocks: [
+      { type: 'photo_single', src: '', caption: '' },
+      { type: 'text', content: '' },
+    ],
+  },
+  {
     type: 'class_page',
     label: 'Klassenübersicht',
     description: 'Fotoraster aller Schüler einer Klasse',

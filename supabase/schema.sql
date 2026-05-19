@@ -23,7 +23,7 @@ create table if not exists students (
 -- Pages (yearbook pages)
 create table if not exists pages (
   id           uuid primary key default gen_random_uuid(),
-  type         text not null check (type in ('class_page','student_page','event_page','editorial')),
+  type         text not null check (type in ('cover','back_cover','class_page','student_page','event_page','editorial')),
   title        text not null,
   blocks       jsonb not null default '[]',
   order_index  integer not null default 0,

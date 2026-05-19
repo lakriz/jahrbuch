@@ -17,7 +17,7 @@ export interface Class {
 
 // ── Page / Template types ──────────────────────────────────────────────────
 
-export type PageType = 'class_page' | 'student_page' | 'event_page' | 'editorial'
+export type PageType = 'cover' | 'back_cover' | 'class_page' | 'student_page' | 'event_page' | 'editorial'
 
 export type BlockType = 'photo_grid' | 'photo_single' | 'text' | 'heading'
 
