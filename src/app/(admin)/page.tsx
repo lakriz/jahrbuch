@@ -1,8 +1,9 @@
-import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate } from 'lucide-react'
+import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images } from 'lucide-react'
 import Link from 'next/link'
 
 const cards = [
   { href: '/layout-editor', label: 'Layout', icon: LayoutTemplate, color: 'bg-blue-50 text-blue-700', desc: 'Buch aus Templates zusammenstellen' },
+  { href: '/images', label: 'Bilder', icon: Images, color: 'bg-pink-50 text-pink-700', desc: 'Fotos hochladen & verwalten' },
   { href: '/classes', label: 'Klassen verwalten', icon: GraduationCap, color: 'bg-green-50 text-green-700', desc: 'Klassenzuordnungen' },
   { href: '/pages', label: 'Seiten erstellen', icon: FileText, color: 'bg-purple-50 text-purple-700', desc: 'Templates & Inhalte' },
   { href: '/export', label: 'PDF exportieren', icon: Download, color: 'bg-orange-50 text-orange-700', desc: 'Druckfertiges Jahrbuch' },

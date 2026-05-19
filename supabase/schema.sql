@@ -30,7 +30,17 @@ create table if not exists pages (
   created_at   timestamptz default now()
 );
 
--- ── Storage Bucket ──────────────────────────────────────────────────────────
+-- Images
+create table if not exists images (
+  id           uuid primary key default gen_random_uuid(),
+  storage_path text not null,
+  public_url   text not null,
+  name         text not null,
+  album_id     uuid references classes(id) on delete set null,
+  created_at   timestamptz default now()
+);
+
+─────────────────────────────────────────────────────────
 -- Create a public bucket called "images" in the Supabase dashboard
 -- or run:
 --
