@@ -37,7 +37,7 @@ export default function ClassesPage() {
       <form onSubmit={add} className="flex gap-2 mb-6">
         <input
           required
-          placeholder="z. B. 10A, Klasse 3"
+          placeholder="z. B. Galaxie, Sonne, Mond …"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

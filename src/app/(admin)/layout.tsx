@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { BookOpen, Users, GraduationCap, FileText, Download } from 'lucide-react'
+import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate } from 'lucide-react'
 
 const nav = [
-  { href: '/students', label: 'Schüler', icon: Users },
+  { href: '/layout-editor', label: 'Layout', icon: LayoutTemplate },
   { href: '/classes', label: 'Klassen', icon: GraduationCap },
   { href: '/pages', label: 'Seiten', icon: FileText },
   { href: '/export', label: 'PDF Export', icon: Download },
