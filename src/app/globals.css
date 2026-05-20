@@ -35,3 +35,8 @@ body {
 input, textarea, select {
   color: #111827; /* gray-900 */
 }
+
+/* Dark text on buttons by default (overridden by Tailwind text-* utilities) */
+button {
+  color: #111827; /* gray-900 */
+}
