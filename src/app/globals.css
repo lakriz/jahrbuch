@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Higher-contrast placeholder text across all inputs and textareas */
+::placeholder {
+  color: #6b7280; /* gray-500 */
+  opacity: 1;
+}
