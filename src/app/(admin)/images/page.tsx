@@ -38,22 +38,32 @@ export default function ImagesPage() {
     if (!list.length) return
     setUploading(true)
     for (const file of list) {
-      const ext = file.name.split('.').pop()
       const folder = selectedAlbum ?? 'allgemein'
-      const path = `${folder}/${crypto.randomUUID()}.${ext}`
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', folder)
 
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file)
-      if (error) { console.error(error); continue }
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
+      if (!response.ok) {
+        console.error('Upload failed')
+        continue
+      }
+
+      const uploadData = await response.json()
       const entry: Omit<ImageEntry, 'id' | 'created_at'> = {
-        storage_path: path,
-        public_url: urlData.publicUrl,
-        name: file.name,
-        alt_text: '',
-        caption: '',
-        tags: [],
-        album_id: selectedAlbum,
+        storage_path:   uploadData.storagePath,
+        thumbnail_path: uploadData.thumbnailPath ?? null,
+        public_url:     uploadData.publicUrl,
+        thumbnail_url:  uploadData.thumbnailUrl ?? null,
+        name:      uploadData.name,
+        alt_text:  '',
+        caption:   '',
+        tags:      [],
+        album_id:  selectedAlbum,
       }
       const { data } = await supabase.from('images').insert(entry).select().single()
       if (data) setImages((p) => [data, ...p])
@@ -68,7 +78,8 @@ export default function ImagesPage() {
   }
 
   const remove = async (img: ImageEntry) => {
-    await supabase.storage.from(BUCKET).remove([img.storage_path])
+    const paths = [img.storage_path, img.thumbnail_path].filter(Boolean) as string[]
+    await supabase.storage.from(BUCKET).remove(paths)
     await supabase.from('images').delete().eq('id', img.id)
     setImages((p) => p.filter((i) => i.id !== img.id))
     if (lightbox?.id === img.id) setLightbox(null)
@@ -230,7 +241,7 @@ function ThumbnailGrid({
         <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={img.public_url}
+            src={img.thumbnail_url || img.public_url}
             alt={img.name}
             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             onClick={() => onOpen(img)}

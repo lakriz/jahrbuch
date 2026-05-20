@@ -18,7 +18,9 @@ export interface Class {
 export interface ImageEntry {
   id: string
   storage_path: string
+  thumbnail_path: string | null
   public_url: string
+  thumbnail_url?: string | null
   name: string
   alt_text: string
   caption: string

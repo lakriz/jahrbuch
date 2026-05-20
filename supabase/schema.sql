@@ -32,18 +32,22 @@ create table if not exists pages (
 
 -- Images
 create table if not exists images (
-  id           uuid primary key default gen_random_uuid(),
-  storage_path text not null,
-  public_url   text not null,
-  name         text not null,
-  album_id     uuid references classes(id) on delete set null,
-  created_at   timestamptz default now()
+  id            uuid primary key default gen_random_uuid(),
+  storage_path  text not null,
+  public_url    text not null,
+  thumbnail_url  text,
+  thumbnail_path text,
+  name          text not null,
+  album_id      uuid references classes(id) on delete set null,
+  created_at    timestamptz default now()
 );
 
 -- ── Images: metadata fields ──────────────────────────────────────────────────
-alter table images add column if not exists alt_text text    not null default '';
-alter table images add column if not exists caption  text    not null default '';
-alter table images add column if not exists tags     text[]  not null default '{}';
+alter table images add column if not exists alt_text     text    not null default '';
+alter table images add column if not exists caption      text    not null default '';
+alter table images add column if not exists tags         text[]  not null default '{}';
+alter table images add column if not exists thumbnail_url  text;
+alter table images add column if not exists thumbnail_path text;
 
 -- ── Content blocks registry ───────────────────────────────────────────────────
 create table if not exists content_blocks (
