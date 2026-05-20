@@ -30,3 +30,8 @@ body {
   color: #6b7280; /* gray-500 */
   opacity: 1;
 }
+
+/* Dark text in all input fields on light backgrounds */
+input, textarea, select {
+  color: #111827; /* gray-900 */
+}
