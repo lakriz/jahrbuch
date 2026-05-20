@@ -1,12 +1,13 @@
 import Link from 'next/link'
-import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images } from 'lucide-react'
+import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Blocks } from 'lucide-react'
 
 const nav = [
-  { href: '/layout-editor', label: 'Layout', icon: LayoutTemplate },
-  { href: '/images', label: 'Bilder', icon: Images },
-  { href: '/classes', label: 'Klassen', icon: GraduationCap },
-  { href: '/pages', label: 'Seiten', icon: FileText },
-  { href: '/export', label: 'PDF Export', icon: Download },
+  { href: '/layout-editor', label: 'Layout',        icon: LayoutTemplate },
+  { href: '/content-blocks', label: 'Contentblöcke', icon: Blocks },
+  { href: '/images',         label: 'Bilder',        icon: Images },
+  { href: '/classes',        label: 'Klassen',       icon: GraduationCap },
+  { href: '/pages',          label: 'Seiten',        icon: FileText },
+  { href: '/export',         label: 'PDF Export',    icon: Download },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

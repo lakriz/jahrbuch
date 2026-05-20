@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import type { Class, ImageEntry } from '@/types'
 import { Upload, Trash2, X, ImageIcon, Loader2 } from 'lucide-react'
 
-const BUCKET = 'images'
+const BUCKET = 'jahrbuch26'
 
 export default function ImagesPage() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -50,6 +50,9 @@ export default function ImagesPage() {
         storage_path: path,
         public_url: urlData.publicUrl,
         name: file.name,
+        alt_text: '',
+        caption: '',
+        tags: [],
         album_id: selectedAlbum,
       }
       const { data } = await supabase.from('images').insert(entry).select().single()

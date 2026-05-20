@@ -20,8 +20,73 @@ export interface ImageEntry {
   storage_path: string
   public_url: string
   name: string
-  album_id: string | null   // null = "Allgemein"
+  alt_text: string
+  caption: string
+  tags: string[]
+  album_id: string | null
   created_at: string
+}
+
+// ── Content block types ────────────────────────────────────────────────────
+
+export type ContentBlockType = 'headline' | 'text' | 'image' | 'gallery'
+
+export interface ContentBlock {
+  id: string
+  type: ContentBlockType
+  label: string
+  created_at: string
+}
+
+export interface BlockHeadline {
+  block_id: string
+  content: string
+  level: 1 | 2 | 3
+}
+
+export interface BlockText {
+  block_id: string
+  content: string
+}
+
+export interface BlockImage {
+  block_id: string
+  image_id: string | null
+  alt_text: string
+  caption: string
+  tags: string[]
+  images?: ImageEntry | null
+}
+
+export interface BlockGallery {
+  block_id: string
+  columns: 2 | 3 | 4
+}
+
+export interface BlockGalleryItem {
+  id: string
+  gallery_id: string
+  image_id: string | null
+  alt_text: string
+  caption: string
+  tags: string[]
+  order_index: number
+  images?: ImageEntry | null
+}
+
+// Fully joined block (as returned from the DB with all relations)
+export interface ContentBlockFull extends ContentBlock {
+  block_headlines?: BlockHeadline | null
+  block_texts?: BlockText | null
+  block_images?: BlockImage | null
+  block_galleries?: (BlockGallery & { block_gallery_items: BlockGalleryItem[] }) | null
+  page_block_refs?: { page_id: string; pages: { id: string; title: string } | null }[]
+}
+
+export interface PageBlockRef {
+  page_id: string
+  block_id: string
+  order_index: number
 }
 
 
