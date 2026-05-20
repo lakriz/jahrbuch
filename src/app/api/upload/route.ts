@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PutObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
-import { createServiceClient } from '@/lib/supabase'
+import { s3, S3_BUCKET, publicUrl } from '@/lib/storage'
 
-const BUCKET = 'jahrbuch26'
 const THUMBNAIL_SIZE = 300
 
 export async function POST(request: NextRequest) {
-  const supabase = createServiceClient()
-
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -23,20 +21,15 @@ export async function POST(request: NextRequest) {
     const filename = crypto.randomUUID()
     const originalPath = `${folder}/${filename}.${ext}`
 
-    // ── Upload original ───────────────────────────────────────
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(originalPath, buffer, { contentType: file.type })
+    // ── Upload original via S3 ────────────────────────────────
+    await s3.send(new PutObjectCommand({
+      Bucket:      S3_BUCKET,
+      Key:         originalPath,
+      Body:        buffer,
+      ContentType: file.type,
+    }))
 
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
-
-    const { data: originalUrlData } = supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(originalPath)
-
-    // ── Generate & upload thumbnail ───────────────────────────
+    // ── Generate & upload thumbnail via S3 ────────────────────
     let thumbnailPath: string | null = null
     let thumbnailUrl: string | null = null
 
@@ -48,23 +41,22 @@ export async function POST(request: NextRequest) {
 
       thumbnailPath = `${folder}/${filename}_thumb.webp`
 
-      const { error: thumbError } = await supabase.storage
-        .from(BUCKET)
-        .upload(thumbnailPath, thumbBuffer, { contentType: 'image/webp' })
+      await s3.send(new PutObjectCommand({
+        Bucket:      S3_BUCKET,
+        Key:         thumbnailPath,
+        Body:        thumbBuffer,
+        ContentType: 'image/webp',
+      }))
 
-      if (thumbError) {
-        console.warn('[upload] Thumbnail upload failed:', thumbError.message)
-        thumbnailPath = null
-      } else {
-        thumbnailUrl = supabase.storage.from(BUCKET).getPublicUrl(thumbnailPath).data.publicUrl
-      }
+      thumbnailUrl = publicUrl(thumbnailPath)
     } catch (thumbErr) {
-      console.warn('[upload] Thumbnail generation failed:', thumbErr)
+      console.warn('[upload] Thumbnail failed:', thumbErr)
+      thumbnailPath = null
     }
 
     return NextResponse.json({
       storagePath:   originalPath,
-      publicUrl:     originalUrlData.publicUrl,
+      publicUrl:     publicUrl(originalPath),
       thumbnailPath,
       thumbnailUrl,
       name: file.name,
