@@ -46,9 +46,11 @@ export default function ImagesPage() {
     query.then(async ({ data }) => {
       if (!data) return
       setImages(data)
-      // Resolve signed URLs for all thumbnails (fall back to original if no thumb)
-      const paths = data.map((img) => img.thumbnail_path ?? img.storage_path)
-      const urls = await fetchSignedUrls(paths)
+      // Sign both thumbnail AND original paths (lightbox needs the original)
+      const paths = data.flatMap((img) =>
+        [img.thumbnail_path, img.storage_path].filter(Boolean) as string[]
+      )
+      const urls = await fetchSignedUrls([...new Set(paths)])
       setSignedUrls(urls)
     })
   }, [selectedAlbum])
@@ -89,9 +91,9 @@ export default function ImagesPage() {
       const { data } = await supabase.from('images').insert(entry).select().single()
       if (data) {
         setImages((p) => [data, ...p])
-        // Fetch signed URL for the new thumbnail
-        const thumbPath = data.thumbnail_path ?? data.storage_path
-        const urls = await fetchSignedUrls([thumbPath])
+        // Sign both thumbnail and original for the newly uploaded image
+        const paths = [data.thumbnail_path, data.storage_path].filter(Boolean) as string[]
+        const urls = await fetchSignedUrls([...new Set(paths)])
         setSignedUrls((prev) => ({ ...prev, ...urls }))
       }
     }
