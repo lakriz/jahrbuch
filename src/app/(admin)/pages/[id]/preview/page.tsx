@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Block, Page } from '@/types'
 import { notFound } from 'next/navigation'
@@ -40,7 +41,7 @@ export default async function PagePreview({ params }: { params: Promise<{ id: st
   return (
     <div className="p-8">
       <div className="mb-6 flex items-center gap-3">
-        <a href="/pages" className="text-sm text-gray-400 hover:text-gray-600">← Zurück</a>
+        <Link href="/pages" className="text-sm text-gray-400 hover:text-gray-600">← Zurück</Link>
         <span className="text-gray-300">|</span>
         <span className="text-sm font-medium text-gray-700">Vorschau: {pg.title}</span>
       </div>
