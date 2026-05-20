@@ -126,6 +126,21 @@ alter table students disable row level security;
 alter table pages    disable row level security;
 alter table images   disable row level security;
 
+-- ── Migrations ────────────────────────────────────────────────────────────────
+-- Update pages type constraint to include cover + back_cover (added later)
+alter table pages drop constraint if exists pages_type_check;
+alter table pages add constraint pages_type_check
+  check (type in ('cover','back_cover','class_page','student_page','event_page','editorial'));
+
+-- content_blocks + page_block_refs RLS
+alter table content_blocks   disable row level security;
+alter table block_headlines  disable row level security;
+alter table block_texts      disable row level security;
+alter table block_images     disable row level security;
+alter table block_galleries  disable row level security;
+alter table block_gallery_items disable row level security;
+alter table page_block_refs  disable row level security;
+
 -- ── Storage RLS policies for the jahrbuch26 bucket ───────────────────────────
 -- Allow anyone to upload, read, update, and delete objects in the bucket.
 create policy "Public upload jahrbuch26"
