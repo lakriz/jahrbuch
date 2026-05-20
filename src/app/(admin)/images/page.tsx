@@ -6,10 +6,24 @@ import { Upload, Trash2, X, ImageIcon, Loader2 } from 'lucide-react'
 
 const BUCKET = 'jahrbuch26'
 
+/** Fetch pre-signed URLs for a list of storage paths (1 h validity). */
+async function fetchSignedUrls(paths: string[]): Promise<Record<string, string>> {
+  if (!paths.length) return {}
+  const res = await fetch('/api/storage/signed-urls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths }),
+  })
+  if (!res.ok) return {}
+  const { urls } = await res.json()
+  return urls as Record<string, string>
+}
+
 export default function ImagesPage() {
   const [classes, setClasses] = useState<Class[]>([])
   const [images, setImages] = useState<ImageEntry[]>([])
-  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null) // null = Allgemein
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [lightbox, setLightbox] = useState<ImageEntry | null>(null)
@@ -29,7 +43,14 @@ export default function ImagesPage() {
     } else {
       query.eq('album_id', selectedAlbum)
     }
-    query.then(({ data }) => { if (data) setImages(data) })
+    query.then(async ({ data }) => {
+      if (!data) return
+      setImages(data)
+      // Resolve signed URLs for all thumbnails (fall back to original if no thumb)
+      const paths = data.map((img) => img.thumbnail_path ?? img.storage_path)
+      const urls = await fetchSignedUrls(paths)
+      setSignedUrls(urls)
+    })
   }, [selectedAlbum])
 
   // Upload files
@@ -66,7 +87,13 @@ export default function ImagesPage() {
         album_id:  selectedAlbum,
       }
       const { data } = await supabase.from('images').insert(entry).select().single()
-      if (data) setImages((p) => [data, ...p])
+      if (data) {
+        setImages((p) => [data, ...p])
+        // Fetch signed URL for the new thumbnail
+        const thumbPath = data.thumbnail_path ?? data.storage_path
+        const urls = await fetchSignedUrls([thumbPath])
+        setSignedUrls((prev) => ({ ...prev, ...urls }))
+      }
     }
     setUploading(false)
   }, [selectedAlbum])
@@ -172,7 +199,7 @@ export default function ImagesPage() {
                 <p className="text-blue-500 font-medium text-sm">Loslassen zum Hochladen</p>
               </div>
             )}
-            <ThumbnailGrid images={images} onDelete={remove} onOpen={setLightbox} />
+            <ThumbnailGrid images={images} signedUrls={signedUrls} onDelete={remove} onOpen={setLightbox} />
           </div>
         )}
       </div>
@@ -186,7 +213,7 @@ export default function ImagesPage() {
           <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={lightbox.public_url}
+              src={signedUrls[lightbox.storage_path] ?? lightbox.public_url}
               alt={lightbox.name}
               className="max-w-full max-h-[85vh] rounded-xl object-contain"
             />
@@ -228,37 +255,43 @@ function AlbumItem({ label, active, onClick }: { label: string; active: boolean;
 
 function ThumbnailGrid({
   images,
+  signedUrls,
   onDelete,
   onOpen,
 }: {
   images: ImageEntry[]
+  signedUrls: Record<string, string>
   onDelete: (img: ImageEntry) => void
   onOpen: (img: ImageEntry) => void
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-      {images.map((img) => (
-        <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={img.thumbnail_url || img.public_url}
-            alt={img.name}
-            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-            onClick={() => onOpen(img)}
-          />
-          {/* Delete button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(img) }}
-            className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-          >
-            <X className="w-3 h-3" />
-          </button>
-          {/* Name tooltip */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <p className="text-white text-xs truncate">{img.name}</p>
+      {images.map((img) => {
+        const thumbPath = img.thumbnail_path ?? img.storage_path
+        const src = signedUrls[thumbPath] ?? img.thumbnail_url ?? img.public_url
+        return (
+          <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={img.name}
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              onClick={() => onOpen(img)}
+            />
+            {/* Delete button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(img) }}
+              className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+            >
+              <X className="w-3 h-3" />
+            </button>
+            {/* Name tooltip */}
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <p className="text-white text-xs truncate">{img.name}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

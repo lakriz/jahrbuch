@@ -1,4 +1,5 @@
-import { S3Client } from '@aws-sdk/client-s3'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 /**
  * S3-compatible client for Supabase Storage.
@@ -20,4 +21,18 @@ export const S3_BUCKET = process.env.SUPABASE_S3_BUCKET ?? 'jahrbuch26'
 export function publicUrl(storagePath: string): string {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
   return `${base}/storage/v1/object/public/${S3_BUCKET}/${storagePath}`
+}
+
+/**
+ * Generate a time-limited pre-signed URL for a private object.
+ * Signing is done locally (no network call required).
+ * @param storagePath  Path inside the bucket, e.g. "allgemein/abc123.jpg"
+ * @param expiresIn    Validity in seconds (default: 3600 = 1 hour)
+ */
+export async function createSignedUrl(
+  storagePath: string,
+  expiresIn = 3600,
+): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: storagePath })
+  return getSignedUrl(s3, command, { expiresIn })
 }
