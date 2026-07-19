@@ -145,7 +145,7 @@ export default function MarkdownWYSIWYG({ value, onChange }: Props) {
   const handleImageConfirm = (imgs: ImageEntry[]) => {
     if (imgs.length > 0) {
       const img = imgs[0]
-      const src = img.public_url
+      const src = `/api/images/${img.id}/file`
       const alt = img.alt_text || img.name
       format('insertImage', src)
       
