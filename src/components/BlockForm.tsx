@@ -11,6 +11,7 @@ const ImagePicker = dynamic(() => import('@/components/ImagePicker'), { ssr: fal
 interface BlockFormProps {
   existing: ContentBlockFull | null
   onSaved: (blockId: string) => void
+  defaultAlbumId?: string | null
 }
 
 type HeadlineForm = { content: string; level: 1 | 2 | 3 }
@@ -18,7 +19,7 @@ type TextForm = { content: string }
 type ImageForm = { image_id: string | null; image?: ImageEntry | null; alt_text: string; caption: string; tags: string[] }
 type GalleryForm = { columns: 2 | 3 | 4; items: (BlockGalleryItem & { image?: ImageEntry | null })[] }
 
-export default function BlockForm({ existing, onSaved }: BlockFormProps) {
+export default function BlockForm({ existing, onSaved, defaultAlbumId = null }: BlockFormProps) {
   const [label, setLabel] = useState(existing?.label ?? '')
   const [type, setType] = useState<ContentBlockType>(existing?.type ?? 'headline')
   const [saving, setSaving] = useState(false)
@@ -198,6 +199,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             <ImagePicker
               selected={image.image_id ? [image.image_id] : []}
               multiple={false}
+              defaultAlbumId={defaultAlbumId}
               onConfirm={([img]) => { setImage((i) => ({ ...i, image_id: img.id, image: img })); setPickerOpen(false) }}
               onClose={() => setPickerOpen(false)}
             />
@@ -239,6 +241,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             <ImagePicker
               selected={gallery.items.map((i) => i.image_id).filter((id): id is string => Boolean(id))}
               multiple={true}
+              defaultAlbumId={defaultAlbumId}
               onConfirm={(imgs) => {
                 const existing = new Set(gallery.items.map((i) => i.image_id))
                 const newItems = imgs

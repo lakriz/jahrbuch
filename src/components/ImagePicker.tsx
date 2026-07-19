@@ -8,12 +8,13 @@ interface Props {
   multiple?: boolean
   onConfirm: (imgs: ImageEntry[]) => void
   onClose: () => void
+  defaultAlbumId?: string | null
 }
 
-export default function ImagePicker({ selected, multiple = false, onConfirm, onClose }: Props) {
+export default function ImagePicker({ selected, multiple = false, onConfirm, onClose, defaultAlbumId = null }: Props) {
   const [classes, setClasses] = useState<Class[]>([])
   const [images, setImages] = useState<ImageEntry[]>([])
-  const [album, setAlbum] = useState<string | null>(null)
+  const [album, setAlbum] = useState<string | null>(defaultAlbumId)
   const [search, setSearch] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set(selected))
 

@@ -7,7 +7,7 @@ import { Plus, Search, X, ChevronUp, ChevronDown, Link2Off, ArrowLeft } from 'lu
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { TypeBadge, BlockPreview } from '@/components/BlockFormShared'
 import BlockForm from '@/components/BlockForm'
-import type { Page, ContentBlockFull, ContentBlockType } from '@/types'
+import type { Page, ContentBlockFull, ContentBlockType, Class } from '@/types'
 
 type PageBlockWithOrder = ContentBlockFull & { ref_order: number }
 
@@ -47,6 +47,7 @@ export default function PageEditorPage() {
   const [page, setPage] = useState<Page | null>(null)
   const [pageBlocks, setPageBlocks] = useState<PageBlockWithOrder[]>([])
   const [allBlocks, setAllBlocks] = useState<ContentBlockFull[]>([])
+  const [classes, setClasses] = useState<Class[]>([])
   const [panel, setPanel] = useState<'none' | 'create' | 'pick'>('none')
   const [pickSearch, setPickSearch] = useState('')
   const [pickType, setPickType] = useState<ContentBlockType | 'all'>('all')
@@ -67,18 +68,38 @@ export default function PageEditorPage() {
     return res.ok ? res.json() : []
   }, [])
 
+  const fetchClasses = useCallback(async (): Promise<Class[]> => {
+    const res = await fetch('/api/classes')
+    return res.ok ? res.json() : []
+  }, [])
+
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    Promise.all([fetchPage(id), fetchPageBlocks(id), fetchAllBlocks()]).then(([pageData, pageBlockData, allBlockData]) => {
+    Promise.all([
+      fetchPage(id),
+      fetchPageBlocks(id),
+      fetchAllBlocks(),
+      fetchClasses(),
+    ]).then(([pageData, pageBlockData, allBlockData, classData]) => {
       if (cancelled) return
       setPage(pageData)
       setPageBlocks(pageBlockData)
       setAllBlocks(allBlockData)
+      setClasses(classData)
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [fetchAllBlocks, fetchPage, fetchPageBlocks, id])
+  }, [fetchAllBlocks, fetchPage, fetchPageBlocks, fetchClasses, id])
+
+  const defaultAlbumId = useMemo(() => {
+    if (!page || !classes.length) return null
+    const matchedClass = classes.find(c => 
+      page.title.toLowerCase().includes(c.name.toLowerCase()) || 
+      c.name.toLowerCase().includes(page.title.toLowerCase())
+    )
+    return matchedClass?.id ?? null
+  }, [page, classes])
 
   const nextOrderIndex = useCallback(() =>
     pageBlocks.length === 0 ? 0 : Math.max(...pageBlocks.map((b) => b.ref_order)) + 1,
@@ -262,7 +283,7 @@ export default function PageEditorPage() {
                   </button>
                 </div>
                 <div className="overflow-y-auto p-4">
-                  <BlockForm existing={null} onSaved={onBlockCreated} />
+                  <BlockForm existing={null} onSaved={onBlockCreated} defaultAlbumId={defaultAlbumId} />
                 </div>
               </div>
             )}
