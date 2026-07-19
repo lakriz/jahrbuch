@@ -80,6 +80,13 @@ This file orients the AI assistant at the start of every session. Read it first 
 ## 📝 SESSION NOTES
 *(Append newest notes to the top with dates. Focus on architectural decisions, hurdles, and changes to the baseline plan.)*
 
+* **2026-07-20 (Bildbearbeitung - Drehen & Zuschneiden):**
+  - Implementierung von Server-Endpoints für Bildrotation `/api/images/[id]/rotate` ([route.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/api/images/[id]/rotate/route.ts)) und Bildausschnitt-Zuschnitt `/api/images/[id]/crop` ([route.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/api/images/[id]/crop/route.ts)). Beide modifizieren das Originalbild per Sharp und bauen alle drei WebP-Vorschaubilder automatisch neu auf.
+  - Hinzufügen von Rotations-Schaltflächen (90° Links / Rechts) und Zuschneiden-Modus in der Lightbox ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/images/page.tsx)).
+  - Integration eines visuellen Drittel-Regel-Gitters (Dashed Yellow Cropbox) auf dem Bild bei aktivem Zuschneide-Modus.
+  - Bereitstellung von vier sich gegenseitig begrenzenden Schiebereglern (X, Y, Breite, Höhe) im rechten Seitenpanel, damit der Ausschnitt immer im Bildbereich bleibt.
+  - Verwendung eines clientseitigen Cache-Busters (`?cb=timestamp`) zur erzwungenen Aktualisierung manipulierter Bilder im Browser.
+
 * **2026-07-20 (ZIP Komplettexport für Backups):**
   - Installation der Bibliothek `adm-zip` zur Erstellung von ZIP-Archiven.
   - Implementierung eines Export-Endpoints `/api/export/zip` ([route.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/api/export/zip/route.ts)), der alle aktiven Texte als Markdown-Dateien mit Frontmatter-Metadaten und alle aktiven Bilder in Originalqualität (strukturiert in Ordnern nach Alben/Klassen) verpackt.
