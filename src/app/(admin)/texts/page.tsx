@@ -37,6 +37,38 @@ export default function TextsPage() {
   const [editTags, setEditTags] = useState<string[]>([])
   const [editorExpanded, setEditorExpanded] = useState(true)
 
+  // Resizing Editor Drawer Height
+  const [editorHeight, setEditorHeight] = useState(400)
+  const [isResizing, setIsResizing] = useState(false)
+
+  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
+    mouseDownEvent.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const resize = useCallback((mouseMoveEvent: MouseEvent) => {
+    if (isResizing) {
+      const newHeight = window.innerHeight - mouseMoveEvent.clientY
+      const maxHeight = window.innerHeight * 0.8
+      setEditorHeight(Math.max(200, Math.min(maxHeight, newHeight)))
+    }
+  }, [isResizing])
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize)
+      window.addEventListener('mouseup', stopResizing)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResizing)
+    }
+  }, [isResizing, resize, stopResizing])
+
   const loadTexts = useCallback(() => {
     setLoading(true)
     const isTrash = currentTab === 'trash'
@@ -427,9 +459,25 @@ export default function TextsPage() {
           )}
         </div>
 
+        {/* Resizer Divider Bar */}
+        {selectedTextId !== null && editorExpanded && (
+          <div
+            onMouseDown={startResizing}
+            className={`h-1.5 bg-gray-200 hover:bg-blue-400 active:bg-blue-600 cursor-row-resize transition-colors w-full flex-shrink-0 z-20 ${
+              isResizing ? 'bg-blue-500' : ''
+            }`}
+            title="Höhe ziehen zum Ändern"
+          />
+        )}
+
         {/* Email-like Bottom Editor Drawer (Collapsible) */}
         {selectedTextId !== null && (
-          <div className="bg-white border-t border-gray-200 shadow-lg flex flex-col transition-all duration-300 ease-in-out">
+          <div
+            style={{ height: editorExpanded ? editorHeight : 'auto' }}
+            className={`bg-white border-t border-gray-200 shadow-lg flex flex-col ${
+              isResizing ? '' : 'transition-all duration-300'
+            }`}
+          >
             
             {/* Editor Header Panel */}
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/70 select-none">
@@ -441,6 +489,7 @@ export default function TextsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setEditorExpanded(!editorExpanded)}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
                   title={editorExpanded ? 'Minimieren' : 'Maximieren'}
@@ -448,6 +497,7 @@ export default function TextsPage() {
                   {editorExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                 </button>
                 <button
+                  type="button"
                   onClick={closeEditor}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-red-600 transition-colors"
                   title="Schließen"
@@ -459,7 +509,7 @@ export default function TextsPage() {
 
             {/* Editor Body Area */}
             {editorExpanded && (
-              <form onSubmit={saveText} className="flex flex-col h-[400px] overflow-hidden">
+              <form onSubmit={saveText} className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
                   {/* Title Input Row */}
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-2">
