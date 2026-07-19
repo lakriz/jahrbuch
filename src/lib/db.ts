@@ -124,6 +124,17 @@ const migrations: string[] = [
     ALTER TABLE images ADD COLUMN file_size INTEGER;
     ALTER TABLE images ADD COLUMN deleted_at TEXT;
   `,
+  // 3 — Tabelle für eigenständige Texte mit Tags, Markdown und Papierkorb-Unterstützung
+  `
+    CREATE TABLE IF NOT EXISTS texts (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tags TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      deleted_at TEXT
+    );
+  `,
 ]
 
 function runMigrations(instance: Database.Database) {

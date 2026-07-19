@@ -3,6 +3,7 @@ import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Bl
 
 const nav = [
   { href: '/images',         label: 'Bilder',        icon: Images },
+  { href: '/texts',          label: 'Texte',         icon: FileText },
   { href: '/export',         label: 'PDF Export',    icon: Download },
   { href: '/settings',       label: 'Einstellungen', icon: Settings },
 ]

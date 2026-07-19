@@ -39,6 +39,15 @@ export interface ImageEntry {
   created_at: string
 }
 
+export interface TextEntry {
+  id: string
+  title: string
+  content: string
+  tags: string[]
+  deleted_at?: string | null
+  created_at: string
+}
+
 // ── Content block types ────────────────────────────────────────────────────
 
 export type ContentBlockType = 'headline' | 'text' | 'image' | 'gallery'
