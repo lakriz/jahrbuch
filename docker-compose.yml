@@ -1,0 +1,19 @@
+services:
+  jahrbuch:
+    build: .
+    image: jahrbuch:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      # Enthält SQLite-DB (jahrbuch.db) UND alle Bild-Uploads (uploads/) —
+      # Backup/Umzug = diesen Ordner kopieren.
+      # Unter Windows (Projekt auf C:\): stattdessen die Named-Volume-Variante
+      # unten verwenden, SQLite hat auf Windows-Bind-Mounts Locking-Probleme
+      # (Details im README).
+      - ./data:/app/data
+      # - jahrbuch_data:/app/data
+    restart: unless-stopped
+
+# Für die Named-Volume-Variante zusätzlich einkommentieren:
+# volumes:
+#   jahrbuch_data:
