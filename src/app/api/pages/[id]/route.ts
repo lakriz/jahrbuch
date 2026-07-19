@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { getPageBlocks } from '@/lib/pageBlocks'
 
 function parsePage(row: Record<string, unknown>) {
-  return { ...row, blocks: JSON.parse((row.blocks as string) || '[]') }
+  return { ...row, blocks: getPageBlocks(row.id as string) }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import db from '@/lib/db'
 import { UPLOADS_DIR } from '@/lib/paths'
+import { getPageBlocks } from '@/lib/pageBlocks'
 import type { Page, Block } from '@/types'
 
 const MIME_TYPES: Record<string, string> = {
@@ -100,7 +101,10 @@ export async function GET() {
     const rows = db.prepare('SELECT * FROM pages ORDER BY order_index').all() as Array<Record<string, unknown>>
     if (!rows.length) return NextResponse.json({ error: 'Keine Seiten gefunden.' }, { status: 404 })
 
-    const pages = rows.map((r) => ({ ...r, blocks: JSON.parse((r.blocks as string) || '[]') })) as Page[]
+    const pages = rows.map((r) => ({
+      ...r,
+      blocks: getPageBlocks(r.id as string)
+    })) as Page[]
 
     const settingRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('book_format') as { value: string } | undefined
     const { getFormatDef, DEFAULT_FORMAT } = await import('@/lib/bookFormats')
