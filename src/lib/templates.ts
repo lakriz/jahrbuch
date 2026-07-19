@@ -32,10 +32,10 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
   {
     type: 'class_page',
     label: 'Klassenübersicht',
-    description: 'Fotoraster aller Schüler einer Klasse',
+    description: 'Gruppenfoto der Klasse mit Namenliste',
     defaultBlocks: [
       { type: 'heading', content: 'Unsere Klasse', level: 1 },
-      { type: 'photo_grid', items: [], columns: 3 },
+      { type: 'photo_single', src: '', caption: '' },
       { type: 'text', content: '' },
     ],
   },

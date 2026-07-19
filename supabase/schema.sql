@@ -141,7 +141,18 @@ alter table block_galleries  disable row level security;
 alter table block_gallery_items disable row level security;
 alter table page_block_refs  disable row level security;
 
--- ── Storage RLS policies for the jahrbuch26 bucket ───────────────────────────
+-- ── Settings (key-value store for global config) ─────────────────────────────
+create table if not exists settings (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table settings disable row level security;
+
+-- Default: DIN A4
+insert into settings (key, value)
+values ('book_format', '"din_a4"')
+on conflict (key) do nothing;
 -- Allow anyone to upload, read, update, and delete objects in the bucket.
 create policy "Public upload jahrbuch26"
   on storage.objects for insert

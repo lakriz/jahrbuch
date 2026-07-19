@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import type { Page, PageType } from '@/types'
 import { Plus, Trash2, ChevronUp, ChevronDown, Eye, LayoutTemplate } from 'lucide-react'
@@ -13,27 +12,27 @@ export default function LayoutEditorPage() {
   const [form, setForm] = useState<{ title: string; type: PageType }>({ title: '', type: 'class_page' })
 
   useEffect(() => {
-    supabase.from('pages').select('*').order('order_index').then(({ data }) => {
-      if (data) setPages(data)
-      setLoading(false)
-    })
+    fetch('/api/pages')
+      .then((r) => r.json())
+      .then((data) => { setPages(data); setLoading(false) })
   }, [])
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
     const template = PAGE_TEMPLATES.find((t) => t.type === form.type)!
-    const { data } = await supabase
-      .from('pages')
-      .insert({ ...form, blocks: template.defaultBlocks, order_index: pages.length })
-      .select()
-      .single()
-    if (data) setPages((p) => [...p, data])
+    const res = await fetch('/api/pages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, blocks: template.defaultBlocks, order_index: pages.length }),
+    })
+    const data = await res.json()
+    setPages((p) => [...p, data])
     setForm({ title: '', type: 'class_page' })
     setAdding(false)
   }
 
   const remove = async (id: string) => {
-    await supabase.from('pages').delete().eq('id', id)
+    await fetch(`/api/pages/${id}`, { method: 'DELETE' })
     setPages((p) => p.filter((pg) => pg.id !== id))
   }
 
@@ -45,7 +44,13 @@ export default function LayoutEditorPage() {
     const reindexed = updated.map((pg, i) => ({ ...pg, order_index: i }))
     setPages(reindexed)
     await Promise.all(
-      reindexed.map((pg) => supabase.from('pages').update({ order_index: pg.order_index }).eq('id', pg.id))
+      reindexed.map((pg) =>
+        fetch(`/api/pages/${pg.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_index: pg.order_index }),
+        })
+      )
     )
   }
 
@@ -67,7 +72,6 @@ export default function LayoutEditorPage() {
         </button>
       </div>
 
-      {/* Add form */}
       {adding && (
         <form onSubmit={add} className="bg-white border border-blue-200 rounded-xl p-5 mb-6 space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -103,7 +107,6 @@ export default function LayoutEditorPage() {
         </form>
       )}
 
-      {/* Template legend */}
       <div className="flex flex-wrap gap-2 mb-5">
         {PAGE_TEMPLATES.map((t) => (
           <span key={t.type} className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">
@@ -112,46 +115,27 @@ export default function LayoutEditorPage() {
         ))}
       </div>
 
-      {/* Page list */}
       <div className="space-y-2">
         {pages.map((pg, i) => {
           const tpl = PAGE_TEMPLATES.find((t) => t.type === pg.type)
           return (
-            <div
-              key={pg.id}
-              className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm"
-            >
-              {/* Order controls */}
+            <div key={pg.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
               <div className="flex flex-col gap-0.5">
-                <button
-                  onClick={() => move(i, -1)}
-                  disabled={i === 0}
-                  className="text-gray-300 hover:text-gray-600 disabled:opacity-20 transition-colors"
-                >
+                <button onClick={() => move(i, -1)} disabled={i === 0}
+                  className="text-gray-300 hover:text-gray-600 disabled:opacity-20 transition-colors">
                   <ChevronUp className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => move(i, 1)}
-                  disabled={i === pages.length - 1}
-                  className="text-gray-300 hover:text-gray-600 disabled:opacity-20 transition-colors"
-                >
+                <button onClick={() => move(i, 1)} disabled={i === pages.length - 1}
+                  className="text-gray-300 hover:text-gray-600 disabled:opacity-20 transition-colors">
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Page number */}
               <span className="text-xs font-mono text-gray-300 w-5 text-right">{i + 1}</span>
-
-              {/* Template color dot */}
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${templateColor(pg.type)}`} />
-
-              {/* Title & type */}
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-sm text-gray-900 truncate block">{pg.title}</span>
                 <span className="text-xs text-gray-400">{tpl?.label}</span>
               </div>
-
-              {/* Actions */}
               <Link href={`/pages/${pg.id}/preview`} className="text-gray-300 hover:text-blue-500 transition-colors">
                 <Eye className="w-4 h-4" />
               </Link>

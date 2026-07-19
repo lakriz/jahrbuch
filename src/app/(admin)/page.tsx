@@ -1,4 +1,4 @@
-import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Blocks } from 'lucide-react'
+import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Blocks, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 const cards = [
@@ -8,6 +8,7 @@ const cards = [
   { href: '/classes',        label: 'Klassen',       icon: GraduationCap,  color: 'bg-green-50  text-green-700',  desc: 'Klassenzuordnungen' },
   { href: '/pages',          label: 'Seiten',        icon: FileText,       color: 'bg-purple-50 text-purple-700', desc: 'Templates & Inhalte' },
   { href: '/export',         label: 'PDF exportieren', icon: Download,     color: 'bg-orange-50 text-orange-700', desc: 'Druckfertiges Jahrbuch' },
+  { href: '/settings',       label: 'Einstellungen', icon: Settings,       color: 'bg-gray-50   text-gray-700',   desc: 'Buchformat & Grundeinstellungen' },
 ]
 
 export default function DashboardPage() {

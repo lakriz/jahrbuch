@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import type { Page, PageType } from '@/types'
 import { Plus, Trash2, GripVertical, Eye } from 'lucide-react'
@@ -14,11 +13,10 @@ export default function PagesPage() {
   const [form, setForm] = useState<{ title: string; type: PageType }>({ title: '', type: 'class_page' })
 
   useEffect(() => {
-    supabase.from('pages').select('*').order('order_index').then(({ data, error }) => {
-      if (error) setError(error.message)
-      if (data) setPages(data)
-      setLoading(false)
-    })
+    fetch('/api/pages')
+      .then((r) => r.json())
+      .then((data) => { setPages(data); setLoading(false) })
+      .catch((err) => { setError(err.message); setLoading(false) })
   }, [])
 
   const add = async (e: React.FormEvent) => {
@@ -26,23 +24,20 @@ export default function PagesPage() {
     setError(null)
     setSaving(true)
     const template = PAGE_TEMPLATES.find((t) => t.type === form.type)!
-    const { data, error: insertError } = await supabase
-      .from('pages')
-      .insert({ ...form, blocks: template.defaultBlocks, order_index: pages.length })
-      .select()
-      .single()
+    const res = await fetch('/api/pages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, blocks: template.defaultBlocks, order_index: pages.length }),
+    })
     setSaving(false)
-    if (insertError) {
-      setError(insertError.message)
-      console.error('[pages] insert error:', insertError)
-      return
-    }
-    if (data) setPages((p) => [...p, data])
+    if (!res.ok) { setError('Fehler beim Erstellen'); return }
+    const data = await res.json()
+    setPages((p) => [...p, data])
     setForm({ title: '', type: 'class_page' })
   }
 
   const remove = async (id: string) => {
-    await supabase.from('pages').delete().eq('id', id)
+    await fetch(`/api/pages/${id}`, { method: 'DELETE' })
     setPages((p) => p.filter((pg) => pg.id !== id))
   }
 
@@ -52,7 +47,6 @@ export default function PagesPage() {
     <div className="p-8 max-w-2xl">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Jahrbuch-Seiten</h1>
 
-      {/* Add form */}
       <form onSubmit={add} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
         <div className="grid grid-cols-2 gap-3 mb-3">
           <input
@@ -86,7 +80,6 @@ export default function PagesPage() {
 
       {error && <p className="mb-6 text-sm text-red-500">{error}</p>}
 
-      {/* Page list */}
       <div className="space-y-2">
         {pages.map((pg, i) => {
           const tpl = PAGE_TEMPLATES.find((t) => t.type === pg.type)

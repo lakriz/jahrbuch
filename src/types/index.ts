@@ -95,6 +95,8 @@ export interface PageBlockRef {
 
 export type PageType = 'cover' | 'back_cover' | 'class_page' | 'student_page' | 'event_page' | 'editorial'
 
+export type { BookFormat } from '@/lib/bookFormats'
+
 export type BlockType = 'photo_grid' | 'photo_single' | 'text' | 'heading'
 
 export interface PhotoGridBlock {

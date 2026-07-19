@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Blocks } from 'lucide-react'
+import { BookOpen, GraduationCap, FileText, Download, LayoutTemplate, Images, Blocks, Settings } from 'lucide-react'
 
 const nav = [
   { href: '/layout-editor', label: 'Layout',        icon: LayoutTemplate },
@@ -8,6 +8,7 @@ const nav = [
   { href: '/classes',        label: 'Klassen',       icon: GraduationCap },
   { href: '/pages',          label: 'Seiten',        icon: FileText },
   { href: '/export',         label: 'PDF Export',    icon: Download },
+  { href: '/settings',       label: 'Einstellungen', icon: Settings },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

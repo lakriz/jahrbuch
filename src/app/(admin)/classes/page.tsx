@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import type { Class } from '@/types'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -10,21 +9,25 @@ export default function ClassesPage() {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    supabase.from('classes').select('*').order('name').then(({ data }) => {
-      if (data) setClasses(data)
-      setLoading(false)
-    })
+    fetch('/api/classes')
+      .then((r) => r.json())
+      .then((data) => { setClasses(data); setLoading(false) })
   }, [])
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { data } = await supabase.from('classes').insert({ name }).select().single()
-    if (data) setClasses((p) => [...p, data])
+    const res = await fetch('/api/classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    const data = await res.json()
+    setClasses((p) => [...p, data])
     setName('')
   }
 
   const remove = async (id: string) => {
-    await supabase.from('classes').delete().eq('id', id)
+    await fetch(`/api/classes/${id}`, { method: 'DELETE' })
     setClasses((p) => p.filter((c) => c.id !== id))
   }
 

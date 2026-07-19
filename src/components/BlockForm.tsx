@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { X } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import type { ContentBlockType, ContentBlockFull, BlockGalleryItem, ImageEntry } from '@/types'
 import { TYPE_META, TagInput, GalleryItemRow } from '@/components/BlockFormShared'
 
@@ -30,9 +29,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
     content: existing?.block_headlines?.content ?? '',
     level: (existing?.block_headlines?.level as 1 | 2 | 3) ?? 1,
   })
-  const [text, setText] = useState<TextForm>({
-    content: existing?.block_texts?.content ?? '',
-  })
+  const [text, setText] = useState<TextForm>({ content: existing?.block_texts?.content ?? '' })
   const [image, setImage] = useState<ImageForm>({
     image_id: existing?.block_images?.image_id ?? null,
     image: existing?.block_images?.images ?? null,
@@ -52,44 +49,39 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
     let blockId = existing?.id ?? null
 
     if (!blockId) {
-      const { data } = await supabase.from('content_blocks').insert({ type, label }).select().single()
-      if (!data) {
-        setSaving(false)
-        return
-      }
+      const res = await fetch('/api/content-blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, label }),
+      })
+      if (!res.ok) { setSaving(false); return }
+      const data = await res.json()
       blockId = data.id
-    } else {
-      await supabase.from('content_blocks').update({ label }).eq('id', blockId)
     }
 
-    if (type === 'headline') {
-      await supabase.from('block_headlines').upsert({ block_id: blockId, ...headline })
-    } else if (type === 'text') {
-      await supabase.from('block_texts').upsert({ block_id: blockId, ...text })
-    } else if (type === 'image') {
-      await supabase.from('block_images').upsert({
-        block_id: blockId,
-        image_id: image.image_id,
-        alt_text: image.alt_text,
-        caption: image.caption,
-        tags: image.tags,
-      })
-    } else if (type === 'gallery') {
-      await supabase.from('block_galleries').upsert({ block_id: blockId, columns: gallery.columns })
-      await supabase.from('block_gallery_items').delete().eq('gallery_id', blockId)
-      if (gallery.items.length > 0) {
-        await supabase.from('block_gallery_items').insert(
-          gallery.items.map((item, i) => ({
-            gallery_id: blockId,
-            image_id: item.image_id,
-            alt_text: item.alt_text,
-            caption: item.caption,
-            tags: item.tags,
-            order_index: i,
-          }))
-        )
+    const payload: Record<string, unknown> = { label }
+
+    if (type === 'headline') payload.headline = headline
+    else if (type === 'text') payload.text = text
+    else if (type === 'image') payload.image = { image_id: image.image_id, alt_text: image.alt_text, caption: image.caption, tags: image.tags }
+    else if (type === 'gallery') {
+      payload.gallery = {
+        columns: gallery.columns,
+        items: gallery.items.map((item, i) => ({
+          image_id: item.image_id,
+          alt_text: item.alt_text,
+          caption: item.caption,
+          tags: item.tags,
+          order_index: i,
+        })),
       }
     }
+
+    await fetch(`/api/content-blocks/${blockId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
 
     setSaving(false)
     if (blockId) onSaved(blockId)
@@ -124,10 +116,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             {(Object.keys(TYPE_META) as ContentBlockType[]).map((t) => {
               const { label: tl, icon: Icon, color } = TYPE_META[t]
               return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
+                <button key={t} type="button" onClick={() => setType(t)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm transition-all ${
                     type === t ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
@@ -153,16 +142,11 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             <label className={labelCls}>Ebene</label>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setHeadline((h) => ({ ...h, level: l }))}
+                <button key={l} type="button" onClick={() => setHeadline((h) => ({ ...h, level: l }))}
                   className={`px-4 py-1.5 rounded-lg border text-sm font-bold transition-colors ${
                     headline.level === l ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-400'
                   }`}
-                >
-                  H{l}
-                </button>
+                >H{l}</button>
               ))}
             </div>
           </div>
@@ -172,13 +156,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
       {type === 'text' && (
         <div>
           <label className={labelCls}>Inhalt</label>
-          <textarea
-            value={text.content}
-            onChange={(e) => setText({ content: e.target.value })}
-            rows={6}
-            placeholder="Text…"
-            className={inputCls}
-          />
+          <textarea value={text.content} onChange={(e) => setText({ content: e.target.value })} rows={6} placeholder="Text…" className={inputCls} />
         </div>
       )}
 
@@ -199,11 +177,8 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
                 </button>
               </div>
             ) : null}
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-            >
+            <button type="button" onClick={() => setPickerOpen(true)}
+              className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
               {image.image ? 'Bild wechseln' : '+ Bild auswählen'}
             </button>
           </div>
@@ -236,8 +211,7 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             <label className={labelCls}>Spalten</label>
             <div className="flex gap-2">
               {([2, 3, 4] as const).map((c) => (
-                <button key={c} type="button"
-                  onClick={() => setGallery((g) => ({ ...g, columns: c }))}
+                <button key={c} type="button" onClick={() => setGallery((g) => ({ ...g, columns: c }))}
                   className={`px-4 py-1.5 rounded-lg border text-sm transition-colors ${
                     gallery.columns === c ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-400'
                   }`}
@@ -249,26 +223,15 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
             <label className={labelCls}>Bilder ({gallery.items.length})</label>
             <div className="space-y-2 mb-2">
               {gallery.items.map((item, idx) => (
-                <GalleryItemRow
-                  key={idx}
-                  item={item}
-                  isFirst={idx === 0}
-                  isLast={idx === gallery.items.length - 1}
-                  onChange={(updated) => setGallery((g) => {
-                    const items = [...g.items]
-                    items[idx] = updated
-                    return { ...g, items }
-                  })}
+                <GalleryItemRow key={idx} item={item} isFirst={idx === 0} isLast={idx === gallery.items.length - 1}
+                  onChange={(updated) => setGallery((g) => { const items = [...g.items]; items[idx] = updated; return { ...g, items } })}
                   onRemove={() => removeGalleryItem(idx)}
                   onMove={(dir) => moveGalleryItem(idx, dir)}
                 />
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setGalleryPickerOpen(true)}
-              className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-            >
+            <button type="button" onClick={() => setGalleryPickerOpen(true)}
+              className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
               + Bilder hinzufügen
             </button>
           </div>
@@ -299,12 +262,8 @@ export default function BlockForm({ existing, onSaved }: BlockFormProps) {
         </>
       )}
 
-      <button
-        type="button"
-        onClick={save}
-        disabled={saving || !label.trim()}
-        className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
-      >
+      <button type="button" onClick={save} disabled={saving || !label.trim()}
+        className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors">
         {saving ? 'Speichern…' : existing ? 'Änderungen speichern' : 'Block erstellen'}
       </button>
     </div>

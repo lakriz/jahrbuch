@@ -1,35 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PutObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
-import { s3, S3_BUCKET, publicUrl } from '@/lib/storage'
+import path from 'path'
+import fs from 'fs'
+import { UPLOADS_DIR } from '@/lib/paths'
 
 const THUMBNAIL_SIZE = 300
+const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const folder = (formData.get('folder') as string) || 'allgemein'
+    const rawFolder = (formData.get('folder') as string) || 'allgemein'
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+
+    // Folder strikt auf einen einzelnen, harmlosen Pfadbestandteil normalisieren
+    const folder = rawFolder.toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'allgemein'
+
+    const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { error: `Dateityp .${ext} nicht erlaubt (${[...ALLOWED_EXTENSIONS].join(', ')})` },
+        { status: 400 }
+      )
     }
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
+    const folderPath = path.join(UPLOADS_DIR, folder)
+    if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
+
+    const buffer = Buffer.from(await file.arrayBuffer())
     const filename = crypto.randomUUID()
-    const originalPath = `${folder}/${filename}.${ext}`
+    const storagePath = `${folder}/${filename}.${ext}`
 
-    // ── Upload original via S3 ────────────────────────────────
-    await s3.send(new PutObjectCommand({
-      Bucket:      S3_BUCKET,
-      Key:         originalPath,
-      Body:        buffer,
-      ContentType: file.type,
-    }))
+    fs.writeFileSync(path.join(UPLOADS_DIR, storagePath), buffer)
 
-    // ── Generate & upload thumbnail via S3 ────────────────────
     let thumbnailPath: string | null = null
     let thumbnailUrl: string | null = null
 
@@ -40,23 +45,15 @@ export async function POST(request: NextRequest) {
         .toBuffer()
 
       thumbnailPath = `${folder}/${filename}_thumb.webp`
-
-      await s3.send(new PutObjectCommand({
-        Bucket:      S3_BUCKET,
-        Key:         thumbnailPath,
-        Body:        thumbBuffer,
-        ContentType: 'image/webp',
-      }))
-
-      thumbnailUrl = publicUrl(thumbnailPath)
+      fs.writeFileSync(path.join(UPLOADS_DIR, thumbnailPath), thumbBuffer)
+      thumbnailUrl = `/uploads/${thumbnailPath}`
     } catch (thumbErr) {
       console.warn('[upload] Thumbnail failed:', thumbErr)
-      thumbnailPath = null
     }
 
     return NextResponse.json({
-      storagePath:   originalPath,
-      publicUrl:     publicUrl(originalPath),
+      storagePath,
+      publicUrl: `/uploads/${storagePath}`,
       thumbnailPath,
       thumbnailUrl,
       name: file.name,

@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import type { Student, Class } from '@/types'
 import { UserPlus, Trash2 } from 'lucide-react'
 
@@ -12,24 +11,29 @@ export default function StudentsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('students').select('*').order('name'),
-      supabase.from('classes').select('*').order('name'),
+      fetch('/api/students').then((r) => r.json()),
+      fetch('/api/classes').then((r) => r.json()),
     ]).then(([s, c]) => {
-      if (s.data) setStudents(s.data)
-      if (c.data) setClasses(c.data)
+      setStudents(s)
+      setClasses(c)
       setLoading(false)
     })
   }, [])
 
   const addClass = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { data } = await supabase.from('students').insert(form).select().single()
-    if (data) setStudents((p) => [...p, data])
+    const res = await fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    const data = await res.json()
+    setStudents((p) => [...p, data])
     setForm({ name: '', class_id: '', bio_text: '' })
   }
 
   const remove = async (id: string) => {
-    await supabase.from('students').delete().eq('id', id)
+    await fetch(`/api/students/${id}`, { method: 'DELETE' })
     setStudents((p) => p.filter((s) => s.id !== id))
   }
 
@@ -39,7 +43,6 @@ export default function StudentsPage() {
     <div className="p-8 max-w-3xl">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Schüler</h1>
 
-      {/* Add form */}
       <form onSubmit={addClass} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <input
@@ -73,7 +76,6 @@ export default function StudentsPage() {
         </button>
       </form>
 
-      {/* List */}
       <div className="space-y-2">
         {students.map((s) => {
           const cls = classes.find((c) => c.id === s.class_id)
