@@ -1,24 +1,54 @@
 import { NextResponse } from 'next/server'
 import puppeteer from 'puppeteer'
+import path from 'path'
+import fs from 'fs'
 import db from '@/lib/db'
+import { UPLOADS_DIR } from '@/lib/paths'
 import type { Page, Block } from '@/types'
+
+const MIME_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string)
+  )
+}
+
+// Lokale Uploads als Data-URI einbetten: setContent() hat keine Base-URL,
+// relative /uploads/-Pfade wären für Chromium sonst nicht auflösbar
+function resolveImageSrc(src: string): string {
+  if (!src.startsWith('/uploads/')) return escapeHtml(src)
+  const abs = path.resolve(UPLOADS_DIR, src.slice('/uploads/'.length))
+  if (!abs.startsWith(UPLOADS_DIR + path.sep)) return ''
+  const mime = MIME_TYPES[path.extname(abs).toLowerCase()]
+  if (!mime || !fs.existsSync(abs)) return ''
+  return `data:${mime};base64,${fs.readFileSync(abs).toString('base64')}`
+}
 
 function renderBlocks(blocks: Block[]): string {
   return blocks.map((block) => {
     switch (block.type) {
-      case 'heading':
-        return `<h${block.level ?? 1} class="heading">${block.content}</h${block.level ?? 1}>`
+      case 'heading': {
+        const level = block.level && block.level >= 1 && block.level <= 3 ? block.level : 1
+        return `<h${level} class="heading">${escapeHtml(block.content)}</h${level}>`
+      }
       case 'text':
-        return `<p class="text-block">${block.content.replace(/\n/g, '<br/>')}</p>`
+        return `<p class="text-block">${escapeHtml(block.content).replace(/\n/g, '<br/>')}</p>`
       case 'photo_single':
         return `
           <figure class="photo-single">
-            <img src="${block.src}" alt="${block.caption ?? ''}" />
-            ${block.caption ? `<figcaption>${block.caption}</figcaption>` : ''}
+            <img src="${resolveImageSrc(block.src)}" alt="${escapeHtml(block.caption ?? '')}" />
+            ${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ''}
           </figure>`
       case 'photo_grid': {
         const cols = block.columns ?? 3
-        const imgs = block.items.map((src) => `<img src="${src}" alt="" />`).join('')
+        const imgs = block.items.map((src) => `<img src="${resolveImageSrc(src)}" alt="" />`).join('')
         return `<div class="photo-grid cols-${cols}">${imgs}</div>`
       }
       default:
