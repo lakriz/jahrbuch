@@ -10,7 +10,49 @@ export default function ImagesPage() {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [lightbox, setLightbox] = useState<ImageEntry | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editAltText, setEditAltText] = useState('')
+  const [editCaption, setEditCaption] = useState('')
+  const [editAlbumId, setEditAlbumId] = useState<string | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const openLightbox = (img: ImageEntry) => {
+    setLightbox(img)
+    setEditName(img.name)
+    setEditAltText(img.alt_text || '')
+    setEditCaption(img.caption || '')
+    setEditAlbumId(img.album_id)
+  }
+
+  const saveMetadata = async () => {
+    if (!lightbox) return
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/images/${lightbox.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          alt_text: editAltText,
+          caption: editCaption,
+          album_id: editAlbumId || null,
+        })
+      })
+      if (res.ok) {
+        const updated = await res.json() as ImageEntry
+        setImages((p) => p.map((i) => i.id === updated.id ? updated : i))
+        if (selectedAlbum !== updated.album_id && selectedAlbum !== null) {
+          setImages((p) => p.filter((i) => i.id !== updated.id))
+        }
+        setLightbox(null)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/classes').then((r) => r.json()).then(setClasses)
@@ -136,24 +178,88 @@ export default function ImagesPage() {
                 <p className="text-blue-500 font-medium text-sm">Loslassen zum Hochladen</p>
               </div>
             )}
-            <ThumbnailGrid images={images} onDelete={remove} onOpen={setLightbox} />
+            <ThumbnailGrid images={images} onDelete={remove} onOpen={openLightbox} />
           </div>
         )}
       </div>
 
       {lightbox && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={lightbox.public_url} alt={lightbox.name} className="max-w-full max-h-[85vh] rounded-xl object-contain" />
-            <div className="flex items-center justify-between mt-2 px-1">
-              <span className="text-white/60 text-xs truncate max-w-xs">{lightbox.name}</span>
-              <div className="flex gap-2">
-                <button onClick={() => remove(lightbox)} className="flex items-center gap-1 text-red-400 hover:text-red-300 text-xs transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" /> Löschen
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 md:p-10" onClick={() => setLightbox(null)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Left side: Image container */}
+            <div className="flex-1 bg-black flex items-center justify-center p-6 min-h-[40vh] md:min-h-0 relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lightbox.public_url} alt={lightbox.name} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+              <button onClick={() => setLightbox(null)} className="absolute top-4 left-4 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Right side: Editing panel */}
+            <div className="w-full md:w-96 flex flex-col border-l border-gray-100 bg-white">
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Bild-Metadaten</h3>
+                <button onClick={() => remove(lightbox)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50" title="Bild löschen">
+                  <Trash2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => setLightbox(null)} className="text-white/60 hover:text-white transition-colors">
-                  <X className="w-4 h-4" />
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Dateiname</label>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Album / Klasse</label>
+                  <select
+                    value={editAlbumId || ''}
+                    onChange={(e) => setEditAlbumId(e.target.value || null)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">Allgemein</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Alt-Text</label>
+                  <input
+                    value={editAltText}
+                    onChange={(e) => setEditAltText(e.target.value)}
+                    placeholder="Bildbeschreibung für Screenreader"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Bildunterschrift (Caption)</label>
+                  <textarea
+                    value={editCaption}
+                    onChange={(e) => setEditCaption(e.target.value)}
+                    placeholder="Bildunterschrift im Jahrbuch"
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-gray-100 flex items-center justify-end gap-2 bg-gray-50">
+                <button onClick={() => setLightbox(null)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">
+                  Abbrechen
+                </button>
+                <button
+                  onClick={saveMetadata}
+                  disabled={savingEdit || !editName.trim()}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 transition-colors"
+                >
+                  {savingEdit ? 'Speichert…' : 'Speichern'}
                 </button>
               </div>
             </div>
