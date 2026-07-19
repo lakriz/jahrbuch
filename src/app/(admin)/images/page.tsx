@@ -959,7 +959,7 @@ export default function ImagesPage() {
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tags</label>
                   <div className="flex flex-wrap gap-1.5 p-2 border border-gray-200 rounded-lg min-h-[40px] bg-gray-50/50">
                     {lightbox.tags && lightbox.tags.map((t) => (
-                      <span key={t} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-gray-700 text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm">
+                      <span key={t} className="inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-800 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
                         {t}
                         {currentTab === 'active' && (
                           <button
@@ -967,15 +967,15 @@ export default function ImagesPage() {
                               const updated = lightbox.tags.filter(x => x !== t)
                               updateImageMetadata(lightbox.id, { tags: updated })
                             }}
-                            className="text-gray-400 hover:text-red-500"
+                            className="text-orange-400 hover:text-red-500"
                           >
-                            <X className="w-2.5 h-2.5" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </span>
                     ))}
                     {(!lightbox.tags || lightbox.tags.length === 0) && (
-                      <span className="text-[10px] text-gray-400 italic">Keine Tags zugewiesen.</span>
+                      <span className="text-xs text-gray-400 italic">Keine Tags zugewiesen.</span>
                     )}
                   </div>
                   {currentTab === 'active' && (
@@ -989,7 +989,7 @@ export default function ImagesPage() {
                               const updated = [...(lightbox.tags || []), t]
                               await updateImageMetadata(lightbox.id, { tags: updated })
                             }}
-                            className="text-[9px] bg-white border border-gray-200 px-1.5 py-0.5 rounded hover:border-gray-400 text-gray-600 transition-colors"
+                            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 px-2 py-1 rounded-lg transition-colors font-semibold"
                           >
                             + {t}
                           </button>

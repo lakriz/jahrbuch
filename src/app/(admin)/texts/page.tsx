@@ -529,15 +529,15 @@ export default function TextsPage() {
                     <span className="text-xs font-semibold text-gray-400 w-12 flex-shrink-0 mt-1">Tags:</span>
                     <div className="flex-1 flex flex-wrap gap-1 items-center">
                       {editTags.map((t) => (
-                        <span key={t} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm">
+                        <span key={t} className="inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-800 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
                           {t}
                           {currentTab === 'active' && (
                             <button
                               type="button"
                               onClick={() => setEditTags(editTags.filter(x => x !== t))}
-                              className="text-gray-400 hover:text-red-500"
+                              className="text-orange-400 hover:text-red-500"
                             >
-                              <X className="w-2.5 h-2.5" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </span>
@@ -551,7 +551,7 @@ export default function TextsPage() {
                                 type="button"
                                 key={t}
                                 onClick={() => setEditTags([...editTags, t])}
-                                className="text-[9px] bg-white border border-gray-200 px-1.5 py-0.5 rounded hover:border-gray-400 text-gray-500 transition-colors"
+                                className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 px-2 py-1 rounded-lg transition-colors font-semibold"
                               >
                                 + {t}
                               </button>
@@ -559,7 +559,7 @@ export default function TextsPage() {
                         </div>
                       )}
                       {editTags.length === 0 && currentTab === 'trash' && (
-                        <span className="text-[10px] text-gray-400 italic">Keine Tags zugewiesen.</span>
+                        <span className="text-xs text-gray-400 italic">Keine Tags zugewiesen.</span>
                       )}
                     </div>
                   </div>
