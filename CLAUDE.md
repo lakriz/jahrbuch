@@ -80,6 +80,13 @@ This file orients the AI assistant at the start of every session. Read it first 
 ## 📝 SESSION NOTES
 *(Append newest notes to the top with dates. Focus on architectural decisions, hurdles, and changes to the baseline plan.)*
 
+* **2026-07-20 (Mehrfachauswahl & Batch-Tagging für Bilder):**
+  - Implementierung eines **Mehrfachauswahl-Modus** (Multi-select) in der Mediathek ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/images/page.tsx)), aktivierbar über die Schaltfläche „Bilder auswählen“.
+  - Checkbox-Overlays an den Bild-Kacheln visualisieren den Auswahlstatus der Bilder bei aktiver Mehrfachauswahl.
+  - Hinzufügen einer schwebenden Bulk-Action-Bar am unteren Bildschirmrand, wenn Bilder ausgewählt sind.
+  - Unterstützung von Batch-Aktionen: Zuweisen oder Entfernen von Tags für alle ausgewählten Bilder gleichzeitig, Massenverschieben in den Papierkorb sowie Massen-Wiederherstellen und endgültiges Löschen im Papierkorb.
+  - Implementierung einer permanenten Bild-Dateiverknüpfung über `/api/images/[id]/file` ([route.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/api/images/[id]/file/route.ts)) zur Vermeidung von Linkbrüchen in den Texten bei Bild-Ersetzungen.
+
 * **2026-07-19 (Texte-Verwaltung & WYSIWYG-Editor):**
   - Ein neuer Menüpunkt **„Texte“** wurde in der Navigation hinzugefügt ([layout.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/layout.tsx)).
   - Eine eigenständige Texte-Verwaltungsseite ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/texts/page.tsx)) wurde mit den gleichen Workflows wie die Bildverwaltung (Anlegen, Editieren, Löschen) implementiert.
