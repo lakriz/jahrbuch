@@ -1,6 +1,8 @@
 'use client'
-import { useEffect, useRef } from 'react'
-import { Bold, Italic, Heading1, Heading2, Heading3, List, Link } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Bold, Italic, Heading1, Heading2, Heading3, List, Link, Image as ImageIcon } from 'lucide-react'
+import ImagePicker from '@/components/ImagePicker'
+import type { ImageEntry } from '@/types'
 
 interface Props {
   value: string
@@ -11,7 +13,7 @@ function markdownToHtml(md: string): string {
   if (!md) return ''
   let html = md
     .replace(/\r\n/g, '\n')
-    // Escape HTML tags to prevent XSS
+    // Escape HTML tags to prevent XSS (images and links generated after)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -28,7 +30,9 @@ function markdownToHtml(md: string): string {
     // Italic
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/_(.*?)_/g, '<em>$1</em>')
-    // Links
+    // Images: ![alt](url) (must convert before links)
+    .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" />')
+    // Links: [text](url)
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">$1</a>')
     // Line breaks (convert remaining \n to <br>)
     .replace(/\n/g, '<br/>')
@@ -87,6 +91,10 @@ function htmlToMarkdown(html: string): string {
       case 'a':
         const href = el.getAttribute('href') ?? ''
         return `[${children}](${href})`
+      case 'img':
+        const imgsrc = el.getAttribute('src') ?? ''
+        const imgalt = el.getAttribute('alt') ?? ''
+        return `![${imgalt}](${imgsrc})`
       case 'div':
         return `${children}\n`
       default:
@@ -102,6 +110,7 @@ function htmlToMarkdown(html: string): string {
 export default function MarkdownWYSIWYG({ value, onChange }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
   const isEditingRef = useRef(false)
+  const [showPicker, setShowPicker] = useState(false)
 
   // Set initial content
   useEffect(() => {
@@ -133,6 +142,27 @@ export default function MarkdownWYSIWYG({ value, onChange }: Props) {
     }
   }
 
+  const handleImageConfirm = (imgs: ImageEntry[]) => {
+    if (imgs.length > 0) {
+      const img = imgs[0]
+      const src = img.public_url
+      const alt = img.alt_text || img.name
+      format('insertImage', src)
+      
+      // Synchronisiere das Alt-Attribut im Editor
+      if (editorRef.current) {
+        const images = editorRef.current.querySelectorAll('img')
+        images.forEach((im) => {
+          if (im.getAttribute('src') === src && !im.getAttribute('alt')) {
+            im.setAttribute('alt', alt)
+          }
+        })
+      }
+      handleInput()
+    }
+    setShowPicker(false)
+  }
+
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
       <style dangerouslySetInnerHTML={{ __html: `
@@ -144,6 +174,7 @@ export default function MarkdownWYSIWYG({ value, onChange }: Props) {
         .editor-area h2 { font-size: 1.2rem !important; font-weight: bold !important; margin-top: 0.75rem !important; margin-bottom: 0.4rem !important; line-height: 1.25 !important; }
         .editor-area h3 { font-size: 1.05rem !important; font-weight: bold !important; margin-top: 0.5rem !important; margin-bottom: 0.3rem !important; line-height: 1.25 !important; }
         .editor-area a { color: #2563eb !important; text-decoration: underline !important; }
+        .editor-area img { max-width: 100% !important; max-height: 300px !important; object-fit: contain !important; border-radius: 0.5rem !important; margin: 0.75rem 0 !important; display: block !important; border: 1px solid #e5e7eb !important; }
       `}} />
 
       {/* Toolbar */}
@@ -211,6 +242,15 @@ export default function MarkdownWYSIWYG({ value, onChange }: Props) {
         >
           <Link className="w-3.5 h-3.5" />
         </button>
+
+        <button
+          type="button"
+          onClick={() => setShowPicker(true)}
+          className="p-1.5 hover:bg-gray-200 rounded-md text-gray-600 transition-colors"
+          title="Bild referenzieren"
+        >
+          <ImageIcon className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* ContentEditable area */}
@@ -221,8 +261,18 @@ export default function MarkdownWYSIWYG({ value, onChange }: Props) {
         onFocus={() => { isEditingRef.current = true }}
         onBlur={() => { isEditingRef.current = false }}
         className="p-4 min-h-[220px] outline-none text-sm text-gray-800 editor-area overflow-y-auto"
-        data-placeholder="Schreibe deinen Text hier..."
+        data-placeholder="Schreibe deinen Text hier und füge Bilder hinzu..."
       />
+
+      {/* Image Picker Dialog */}
+      {showPicker && (
+        <ImagePicker
+          selected={[]}
+          multiple={false}
+          onConfirm={handleImageConfirm}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
     </div>
   )
 }

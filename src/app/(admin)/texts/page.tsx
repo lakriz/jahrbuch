@@ -7,8 +7,9 @@ import MarkdownWYSIWYG from '@/components/MarkdownWYSIWYG'
 // Simple client-side Markdown-to-HTML parser for card previews
 function renderMarkdownPreview(md: string): string {
   if (!md) return ''
-  // Strip headers, lists, links, stars, and return plain text snippet
+  // Strip headers, lists, links, stars, images, and return plain text snippet
   return md
+    .replace(/!\[.*?\]\(.*?\)/g, '[Bild] ')
     .replace(/^#+\s+/gm, '')
     .replace(/^\s*[-*]\s+/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
