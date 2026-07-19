@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import type { Class, ImageEntry } from '@/types'
-import { Upload, Trash2, X, ImageIcon, Loader2, ArrowLeftRight, RefreshCw, Plus, Tag, ShieldAlert } from 'lucide-react'
+import { Upload, Trash2, X, ImageIcon, Loader2, ArrowLeftRight, RefreshCw, Plus, Tag, ShieldAlert, Check } from 'lucide-react'
 
 export default function ImagesPage() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -19,6 +19,10 @@ export default function ImagesPage() {
     'sommerfest', 'klassiker', 'cover', 'portrait', 'sportfest', 'ausflug'
   ])
   const [newTagInput, setNewTagInput] = useState('')
+
+  // Multi-select / Batch tagging states
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false)
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set())
 
   // Edit metadata form states
   const [editName, setEditName] = useState('')
@@ -200,7 +204,7 @@ export default function ImagesPage() {
     setEditAltText(img.alt_text || '')
     setEditCaption(img.caption || '')
     setEditAlbumId(img.album_id)
-    setUploadError(null) // clear errors
+    setUploadError(null)
   }
 
   const saveMetadata = async () => {
@@ -259,6 +263,123 @@ export default function ImagesPage() {
     setNewTagInput('')
   }
 
+  // Multi-select operations
+  const toggleImageSelection = (id: string) => {
+    setSelectedImageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const cancelSelection = () => {
+    setSelectedImageIds(new Set())
+    setIsMultiSelectMode(false)
+  }
+
+  const addTagToSelected = async (tag: string) => {
+    setUploading(true)
+    const ids = Array.from(selectedImageIds)
+    try {
+      await Promise.all(
+        ids.map(async (id) => {
+          const img = images.find((i) => i.id === id)
+          if (img && !img.tags?.includes(tag)) {
+            const updatedTags = [...(img.tags || []), tag]
+            await fetch(`/api/images/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tags: updatedTags }),
+            })
+          }
+        })
+      )
+      loadImages()
+      setSelectedImageIds(new Set())
+      setIsMultiSelectMode(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeTagFromSelected = async (tag: string) => {
+    setUploading(true)
+    const ids = Array.from(selectedImageIds)
+    try {
+      await Promise.all(
+        ids.map(async (id) => {
+          const img = images.find((i) => i.id === id)
+          if (img && img.tags?.includes(tag)) {
+            const updatedTags = img.tags.filter((t) => t !== tag)
+            await fetch(`/api/images/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tags: updatedTags }),
+            })
+          }
+        })
+      )
+      loadImages()
+      setSelectedImageIds(new Set())
+      setIsMultiSelectMode(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const deleteSelected = async () => {
+    const isTrash = currentTab === 'trash'
+    if (isTrash) {
+      if (!confirm(`${selectedImageIds.size} Bilder endgültig von der Festplatte löschen?`)) return
+    } else {
+      if (!confirm(`${selectedImageIds.size} Bilder in den Papierkorb verschieben?`)) return
+    }
+    
+    setUploading(true)
+    const ids = Array.from(selectedImageIds)
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/images/${id}${isTrash ? '?permanent=true' : ''}`, {
+            method: 'DELETE',
+          })
+        )
+      )
+      loadImages()
+      setSelectedImageIds(new Set())
+      setIsMultiSelectMode(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const restoreSelected = async () => {
+    setUploading(true)
+    const ids = Array.from(selectedImageIds)
+    try {
+      await Promise.all(
+        ids.map((id) => fetch(`/api/images/${id}/restore`, { method: 'POST' }))
+      )
+      loadImages()
+      setSelectedImageIds(new Set())
+      setIsMultiSelectMode(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // Intelligent filter & sorting
   const tagCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -288,7 +409,7 @@ export default function ImagesPage() {
         </div>
         <nav className="p-2 space-y-0.5 max-h-[40vh] overflow-y-auto border-b border-gray-100">
           <button
-            onClick={() => { setSelectedAlbum(null); setSelectedTag(null) }}
+            onClick={() => { setSelectedAlbum(null); setSelectedTag(null); cancelSelection() }}
             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
               selectedAlbum === null ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }`}
@@ -298,7 +419,7 @@ export default function ImagesPage() {
           {classes.map((c) => (
             <button
               key={c.id}
-              onClick={() => { setSelectedAlbum(c.id); setSelectedTag(null) }}
+              onClick={() => { setSelectedAlbum(c.id); setSelectedTag(null); cancelSelection() }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                 selectedAlbum === c.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
@@ -392,7 +513,7 @@ export default function ImagesPage() {
             <h1 className="text-xl font-bold text-gray-900">{albumLabel}</h1>
             <div className="flex bg-gray-200/60 p-0.5 rounded-lg text-xs font-medium">
               <button
-                onClick={() => { setCurrentTab('active'); setSelectedTag(null) }}
+                onClick={() => { setCurrentTab('active'); setSelectedTag(null); cancelSelection() }}
                 className={`px-3 py-1 rounded-md transition-colors ${
                   currentTab === 'active' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-900'
                 }`}
@@ -400,7 +521,7 @@ export default function ImagesPage() {
                 Aktive Bilder
               </button>
               <button
-                onClick={() => { setCurrentTab('trash'); setSelectedTag(null) }}
+                onClick={() => { setCurrentTab('trash'); setSelectedTag(null); cancelSelection() }}
                 className={`px-3 py-1 rounded-md transition-colors ${
                   currentTab === 'trash' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-900'
                 }`}
@@ -411,7 +532,26 @@ export default function ImagesPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {currentTab === 'trash' && images.length > 0 && (
+            {images.length > 0 && (
+              <button
+                onClick={() => {
+                  if (isMultiSelectMode) {
+                    cancelSelection()
+                  } else {
+                    setIsMultiSelectMode(true)
+                  }
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                  isMultiSelectMode 
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' 
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm'
+                }`}
+              >
+                {isMultiSelectMode ? 'Auswahl beenden' : 'Bilder auswählen'}
+              </button>
+            )}
+
+            {currentTab === 'trash' && images.length > 0 && !isMultiSelectMode && (
               <button
                 onClick={emptyTrash}
                 disabled={uploading}
@@ -421,7 +561,7 @@ export default function ImagesPage() {
               </button>
             )}
             
-            {currentTab === 'active' && (
+            {currentTab === 'active' && !isMultiSelectMode && (
               <button
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
@@ -498,78 +638,105 @@ export default function ImagesPage() {
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {filteredImages.map((img) => {
-                // Use 200x200 crop or 400x preview for speed
                 const src = img.thumb_200_url ?? img.thumbnail_url ?? img.public_url
+                const isSelected = selectedImageIds.has(img.id)
                 return (
                   <div
                     key={img.id}
-                    draggable
+                    draggable={!isMultiSelectMode}
                     onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', `image:${img.id}`)
+                      if (!isMultiSelectMode) {
+                        e.dataTransfer.setData('text/plain', `image:${img.id}`)
+                      }
                     }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={async (e) => {
                       e.preventDefault()
-                      const data = e.dataTransfer.getData('text/plain')
-                      if (data.startsWith('tag:')) {
-                        const tag = data.substring(4)
-                        if (!img.tags?.includes(tag)) {
-                          const updatedTags = [...(img.tags || []), tag]
-                          await updateImageMetadata(img.id, { tags: updatedTags })
+                      if (!isMultiSelectMode) {
+                        const data = e.dataTransfer.getData('text/plain')
+                        if (data.startsWith('tag:')) {
+                          const tag = data.substring(4)
+                          if (!img.tags?.includes(tag)) {
+                            const updatedTags = [...(img.tags || []), tag]
+                            await updateImageMetadata(img.id, { tags: updatedTags })
+                          }
                         }
                       }
                     }}
-                    onClick={() => openLightbox(img)}
-                    className="group relative aspect-square rounded-xl overflow-hidden bg-white border border-gray-200 cursor-pointer shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200"
+                    onClick={() => {
+                      if (isMultiSelectMode) {
+                        toggleImageSelection(img.id)
+                      } else {
+                        openLightbox(img)
+                      }
+                    }}
+                    className={`group relative aspect-square rounded-xl overflow-hidden bg-white border cursor-pointer shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 ${
+                      isSelected ? 'ring-2 ring-blue-600 ring-offset-2 border-blue-600' : 'border-gray-200'
+                    }`}
                   >
+                    {/* Multi-select checkmark indicator */}
+                    {isMultiSelectMode && (
+                      <div className="absolute top-2 left-2 z-20">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'bg-white/80 border-gray-400 text-transparent'
+                        }`}>
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={src} alt={img.name} className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
                     
                     {/* Quick Info & Action Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">
-                      <div className="flex justify-end">
-                        {currentTab === 'active' ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); remove(img) }}
-                            className="bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors"
-                            title="In den Papierkorb verschieben"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        ) : (
-                          <div className="flex gap-1">
+                    {!isMultiSelectMode && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">
+                        <div className="flex justify-end">
+                          {currentTab === 'active' ? (
                             <button
-                              onClick={(e) => { e.stopPropagation(); restoreFromTrash(img) }}
-                              className="bg-black/60 hover:bg-green-600 text-white rounded-full p-1.5 transition-colors"
-                              title="Wiederherstellen"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deletePermanently(img) }}
+                              onClick={(e) => { e.stopPropagation(); remove(img) }}
                               className="bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors"
-                              title="Endgültig löschen"
+                              title="In den Papierkorb verschieben"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); restoreFromTrash(img) }}
+                                className="bg-black/60 hover:bg-green-600 text-white rounded-full p-1.5 transition-colors"
+                                title="Wiederherstellen"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deletePermanently(img) }}
+                                className="bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors"
+                                title="Endgültig löschen"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-white text-xs font-medium truncate">{img.name}</p>
+                          {img.width && img.height && (
+                            <p className="text-white/60 text-[10px]">{img.width} × {img.height} px</p>
+                          )}
+                          {img.tags && img.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {img.tags.slice(0, 2).map((t) => (
+                                <span key={t} className="bg-orange-500/80 text-white text-[9px] px-1 rounded truncate max-w-[60px]">{t}</span>
+                              ))}
+                              {img.tags.length > 2 && <span className="bg-orange-500/80 text-white text-[9px] px-1 rounded">+</span>}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-white text-xs font-medium truncate">{img.name}</p>
-                        {img.width && img.height && (
-                          <p className="text-white/60 text-[10px]">{img.width} × {img.height} px</p>
-                        )}
-                        {img.tags && img.tags.length > 0 && (
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            {img.tags.slice(0, 2).map((t) => (
-                              <span key={t} className="bg-orange-500/80 text-white text-[9px] px-1 rounded truncate max-w-[60px]">{t}</span>
-                            ))}
-                            {img.tags.length > 2 && <span className="bg-orange-500/80 text-white text-[9px] px-1 rounded">+</span>}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )
               })}
@@ -591,6 +758,93 @@ export default function ImagesPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Bar for Bulk Tagging & Actions */}
+      {isMultiSelectMode && selectedImageIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 border border-gray-800 backdrop-blur z-40 animate-fade-in text-xs">
+          <span className="font-semibold text-gray-200">
+            {selectedImageIds.size} Bild{selectedImageIds.size > 1 ? 'er' : ''} ausgewählt
+          </span>
+
+          <div className="h-4 w-px bg-gray-700" />
+
+          {currentTab === 'active' ? (
+            <>
+              {/* Add tags dropdown */}
+              <div className="relative group">
+                <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition-colors">
+                  <Tag className="w-3.5 h-3.5 text-gray-400" /> Tag hinzufügen
+                </button>
+                <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-gray-800 border border-gray-700 rounded-lg p-1.5 min-w-[150px] shadow-lg max-h-48 overflow-y-auto">
+                  {availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => addTagToSelected(tag)}
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-gray-700 rounded text-gray-200 hover:text-white transition-colors"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Remove tags dropdown */}
+              <div className="relative group">
+                <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition-colors">
+                  <X className="w-3.5 h-3.5 text-gray-400" /> Tag entfernen
+                </button>
+                <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-gray-800 border border-gray-700 rounded-lg p-1.5 min-w-[150px] shadow-lg max-h-48 overflow-y-auto">
+                  {availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => removeTagFromSelected(tag)}
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-gray-700 rounded text-gray-200 hover:text-white transition-colors"
+                    >
+                      - {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={deleteSelected}
+                className="bg-red-950/80 hover:bg-red-900 border border-red-900/50 text-red-200 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> In Papierkorb
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={restoreSelected}
+                className="bg-green-950/80 hover:bg-green-900 border border-green-900/50 text-green-200 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Wiederherstellen
+              </button>
+              
+              <button
+                type="button"
+                onClick={deleteSelected}
+                className="bg-red-950/80 hover:bg-red-900 border border-red-900/50 text-red-200 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Endgültig löschen
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={cancelSelection}
+            className="text-gray-400 hover:text-white px-2 py-1.5 rounded transition-colors"
+          >
+            Auswahl aufheben
+          </button>
+        </div>
+      )}
 
       {/* Extended Modal Lightbox / Editor */}
       {lightbox && (
