@@ -80,6 +80,14 @@ This file orients the AI assistant at the start of every session. Read it first 
 ## 📝 SESSION NOTES
 *(Append newest notes to the top with dates. Focus on architectural decisions, hurdles, and changes to the baseline plan.)*
 
+* **2026-07-19 (Texte-Verwaltung & WYSIWYG-Editor):**
+  - Ein neuer Menüpunkt **„Texte“** wurde in der Navigation hinzugefügt ([layout.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/layout.tsx)).
+  - Eine eigenständige Texte-Verwaltungsseite ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/texts/page.tsx)) wurde mit den gleichen Workflows wie die Bildverwaltung (Anlegen, Editieren, Löschen) implementiert.
+  - Integration eines benutzerdefinierten WYSIWYG-Editors ([MarkdownWYSIWYG.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/components/MarkdownWYSIWYG.tsx)), der im Hintergrund HTML-Eingaben bidirektional in sauberen Markdown-Code umwandelt und speichert.
+  - Das Papierkorb-System (Soft-Delete über `deleted_at`) wurde analog zu den Bildern auf die Texte übertragen. Texte können im Papierkorb-Tab wiederhergestellt oder endgültig aus der Datenbank gelöscht werden.
+  - Unterstützung für interaktives Tag-Management: Tags können per HTML5 Drag & Drop auf Text-Karten gezogen werden (und umgekehrt, Texte auf Tags) sowie Filtermöglichkeiten mit Beitragszählern in der Sidebar.
+  - Eine neue DB-Migration ([db.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/lib/db.ts)) für die `texts` Tabelle wurde angelegt und wendet sich beim App-Start automatisch an.
+
 * **2026-07-19 (Vereinfachtes Menü & Druckfähige Uploads):** 
   - Die Navigationsleiste im Admin-Bereich wurde auf die drei Kern-Menüpunkte reduziert: Bilder, PDF Export und Einstellungen.
   - Beim Bild-Upload und -Ersetzen wird nun geprüft, ob die Auflösung mindestens 2400 x 1000 px (oder umgekehrt) beträgt, um Druckqualität zu garantieren. Zu kleine Bilder werden mit einer informativen Fehlermeldung abgelehnt.
