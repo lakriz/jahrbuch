@@ -80,6 +80,12 @@ This file orients the AI assistant at the start of every session. Read it first 
 ## 📝 SESSION NOTES
 *(Append newest notes to the top with dates. Focus on architectural decisions, hurdles, and changes to the baseline plan.)*
 
+* **2026-07-20 (ZIP Komplettexport für Backups):**
+  - Installation der Bibliothek `adm-zip` zur Erstellung von ZIP-Archiven.
+  - Implementierung eines Export-Endpoints `/api/export/zip` ([route.ts](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/api/export/zip/route.ts)), der alle aktiven Texte als Markdown-Dateien mit Frontmatter-Metadaten und alle aktiven Bilder in Originalqualität (strukturiert in Ordnern nach Alben/Klassen) verpackt.
+  - Hinzufügen einer Übersicht `README.md` und einer JSON-Zusammenfassung `export_data.json` im Stammverzeichnis der ZIP-Datei.
+  - Neugestaltung des Exportbereichs ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/export/page.tsx)) in einem ansprechenden 2-Spalten-Kartenlayout (PDF-Export vs. ZIP-Export).
+
 * **2026-07-20 (Mehrfachauswahl & Batch-Tagging für Bilder):**
   - Implementierung eines **Mehrfachauswahl-Modus** (Multi-select) in der Mediathek ([page.tsx](file:///Users/kriz/IdeaProjects/jahrbuch/src/app/(admin)/images/page.tsx)), aktivierbar über die Schaltfläche „Bilder auswählen“.
   - Checkbox-Overlays an den Bild-Kacheln visualisieren den Auswahlstatus der Bilder bei aktiver Mehrfachauswahl.
