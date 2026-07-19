@@ -111,6 +111,19 @@ const migrations: string[] = [
 
     INSERT OR IGNORE INTO settings (key, value) VALUES ('book_format', '"din_a4"');
   `,
+  // 2 — Drei Vorschaubilder, Dimensionen, Dateigröße + Soft-Delete für Bilder
+  `
+    ALTER TABLE images ADD COLUMN thumb_200_url TEXT;
+    ALTER TABLE images ADD COLUMN thumb_200_path TEXT;
+    ALTER TABLE images ADD COLUMN thumb_400_url TEXT;
+    ALTER TABLE images ADD COLUMN thumb_400_path TEXT;
+    ALTER TABLE images ADD COLUMN thumb_800_url TEXT;
+    ALTER TABLE images ADD COLUMN thumb_800_path TEXT;
+    ALTER TABLE images ADD COLUMN width INTEGER;
+    ALTER TABLE images ADD COLUMN height INTEGER;
+    ALTER TABLE images ADD COLUMN file_size INTEGER;
+    ALTER TABLE images ADD COLUMN deleted_at TEXT;
+  `,
 ]
 
 function runMigrations(instance: Database.Database) {

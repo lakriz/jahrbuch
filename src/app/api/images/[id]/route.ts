@@ -60,20 +60,42 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const row = db.prepare('SELECT storage_path, thumbnail_path FROM images WHERE id = ?').get(id) as
-    | { storage_path: string; thumbnail_path: string | null }
-    | undefined
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const permanent = request.nextUrl.searchParams.get('permanent') === 'true'
 
-  if (row) {
-    for (const p of [row.storage_path, row.thumbnail_path].filter(Boolean)) {
-      const abs = path.resolve(UPLOADS_DIR, p as string)
-      if (!abs.startsWith(UPLOADS_DIR + path.sep)) continue
-      try { fs.unlinkSync(abs) } catch { /* already gone */ }
+    const row = db.prepare('SELECT * FROM images WHERE id = ?').get(id) as Record<string, unknown> | undefined
+    if (!row) return new NextResponse(null, { status: 404 })
+
+    if (permanent) {
+      // Dateipfade löschen
+      const filesToDelete = [
+        row.storage_path,
+        row.thumbnail_path,
+        row.thumb_200_path,
+        row.thumb_400_path,
+        row.thumb_800_path
+      ].filter(Boolean) as string[]
+
+      for (const p of filesToDelete) {
+        const abs = path.resolve(UPLOADS_DIR, p)
+        if (!abs.startsWith(UPLOADS_DIR + path.sep)) continue
+        try { fs.unlinkSync(abs) } catch { /* already gone */ }
+      }
+
+      db.prepare('DELETE FROM images WHERE id = ?').run(id)
+    } else {
+      // Soft Delete: deleted_at setzen
+      db.prepare("UPDATE images SET deleted_at = datetime('now') WHERE id = ?").run(id)
     }
-    db.prepare('DELETE FROM images WHERE id = ?').run(id)
-  }
 
-  return new NextResponse(null, { status: 204 })
+    return new NextResponse(null, { status: 204 })
+  } catch (err) {
+    console.error('[Delete Image Error]', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
 }

@@ -21,11 +21,21 @@ export interface ImageEntry {
   thumbnail_path: string | null
   public_url: string
   thumbnail_url?: string | null
+  thumb_200_url?: string | null
+  thumb_200_path?: string | null
+  thumb_400_url?: string | null
+  thumb_400_path?: string | null
+  thumb_800_url?: string | null
+  thumb_800_path?: string | null
+  width?: number | null
+  height?: number | null
+  file_size?: number | null
   name: string
   alt_text: string
   caption: string
   tags: string[]
   album_id: string | null
+  deleted_at?: string | null
   created_at: string
 }
 
