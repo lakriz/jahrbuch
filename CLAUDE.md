@@ -80,6 +80,14 @@ This file orients the AI assistant at the start of every session. Read it first 
 ## 📝 SESSION NOTES
 *(Append newest notes to the top with dates. Focus on architectural decisions, hurdles, and changes to the baseline plan.)*
 
+* **2026-07-19 (Vereinfachtes Menü & Druckfähige Uploads):** 
+  - Die Navigationsleiste im Admin-Bereich wurde auf die drei Kern-Menüpunkte reduziert: Bilder, PDF Export und Einstellungen.
+  - Beim Bild-Upload und -Ersetzen wird nun geprüft, ob die Auflösung mindestens 2400 x 1000 px (oder umgekehrt) beträgt, um Druckqualität zu garantieren. Zu kleine Bilder werden mit einer informativen Fehlermeldung abgelehnt.
+  - Zu jedem Bild werden nun drei Vorschaubilder im WebP-Format generiert: Ein quadratischer Crop (200x200px) sowie zwei proportionale Skalierungen (max. 400px und max. 800px).
+  - Ein Papierkorb-System wurde eingeführt: Das Löschen verschiebt Bilder in den Papierkorb (Datenbankspalte `deleted_at`). Bilder können dort wiederhergestellt oder unwiderruflich gelöscht werden, inklusive der dazugehörigen Dateien auf der Festplatte.
+  - Im Bild-Bearbeiten-Modal werden alle Bildmetadaten (Dateigröße in MB, exakte Auflösung, Pfad, Upload-Datum) angezeigt. Bilder lassen sich dort auch direkt durch neue Uploads ersetzen.
+  - Drag & Drop Sortierung für Tags: Tags können per HTML5 Drag & Drop auf Bilder gezogen werden, um sie zuzuweisen (und umgekehrt, Bilder auf Tags in der Sidebar). Das Anklicken eines Tags filtert die Bildübersicht intelligent mit Zähleranzeigen.
+
 * **2026-07-19 (Feature-Erweiterung & PDF/Preview Fixes):** Phase 2 und Phase 3 vollständig abgeschlossen.
   - Die PDF-Generierung (`/api/export/pdf`) und die Seitenvorschau (`/pages/[id]/preview`) wurden migriert, um Blöcke aus dem neuen Datenbankschema (`content_blocks` / `page_block_refs`) über eine neue Hilfsfunktion `getPageBlocks` in `src/lib/pageBlocks.ts` zu laden.
   - Das Erstellen einer neuen Seite (`POST /api/pages`) initialisiert nun automatisch die Standard-Blöcke des Templates in den neuen Tabellen und verknüpft sie atomar über eine Datenbank-Transaktion.
